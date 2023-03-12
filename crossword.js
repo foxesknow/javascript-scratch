@@ -1,36 +1,24 @@
-function isMatch(lineFromCrossword, candidate) {
-    /*
-     * lineFromCrossword can contain either a letter or a space.
-     * A space means we don't know if there a match
-     */
-    if(lineFromCrossword.length != candidate.length) {
+/*
+ * See if a word from the crossword can match an actual word (the candidate)
+ */
+function isMatch(wordFromCrossword, candidate) {
+    // If the words are different length then they'll never match
+    if(wordFromCrossword.length != candidate.length) {
         return false;
     }
 
-    for (let i = 0; i < lineFromCrossword.length; i++) {
-        if (lineFromCrossword[i] == ' ') {
+    for (let i = 0; i < wordFromCrossword.length; i++) {
+        // A space in the crossword means any character can match, which is fine
+        if (wordFromCrossword[i] == ' ') {
             continue;
         }
 
-        if (lineFromCrossword[i] != candidate[i]) {
+        if (wordFromCrossword[i] != candidate[i]) {
             return false;
         }
     }
 
     return true;
-}
-
-function findWordThatMatches(pattern, words) {
-    for(let i = 0; i < words.length; i++) {
-        let word = words[i];
-        if(word != null) {
-            if(isMatch(pattern, word)) {
-                return [word, i];
-            }
-        }
-    }
-
-    return [null, -1];
 }
 
 /*
@@ -41,7 +29,7 @@ function createCell(initialCount) {
 
     let cell = {
         isStartCell: isStartCell,
-        initialCount: initialCount,
+        wordsFromThisCell: initialCount,
         char: " ",
         toString: function(){return this.char;}
     };
@@ -69,42 +57,6 @@ function createCrossword(boardDescription) {
         columnCount: columnCount,
         cells: cells
     };
-}
-
-
-function getHorizontalLength(crossword, row, column) {
-    let length = 0;
-    
-    for (let i = column; i < crossword.columnCount; i++) {
-        let cell = crossword.cells[row][i];
-        if (cell == null)
-        {
-            break;
-        }
-
-        length++;
-    }
-
-    return length;
-}
-
-/*
- * Given a cell location works out how
- */
-function getVerticalLength(crossword, row, column) {
-    let length = 0;
-    
-    for (let i = row; i < crossword.rowCount; i++) {
-        let cell = crossword.cells[i][column];
-        if (cell == null)
-        {
-            break;
-        }
-
-        length++;
-    }
-
-    return length;
 }
 
 /*
@@ -139,6 +91,9 @@ function canGoDown(crossword, row, column) {
     return true;
 }
 
+/*
+ * Gets the word that runs to the right, starting at [row,col]
+ */
 function getWordRight(crossword, row, column) {
     let word = "";
     
@@ -155,6 +110,9 @@ function getWordRight(crossword, row, column) {
     return word;
 }
 
+/*
+ * Gets the word that runs down, starting at [row,col]
+ */
 function getWordDown(crossword, row, column) {
     let word = "";
     
@@ -171,11 +129,14 @@ function getWordDown(crossword, row, column) {
     return word;
 }
 
-function setWordRight(crossword, row, column, word) {
-    let delta = word[0] == " " ? 1 : -1;
-    
+/*
+ * Writes a word to the crossword.
+ * The delta is used to adjust the count.
+ * When we are trying out a word the delta is -1, when we return the word it's 1
+ */
+function setWordRight(crossword, row, column, word, delta) {
     let startCell = crossword.cells[row][column];
-    startCell.initialCount += delta;
+    startCell.wordsFromThisCell += delta;
 
     for(let i = 0; i < word.length; i++) {
         let c = word[i];
@@ -184,11 +145,9 @@ function setWordRight(crossword, row, column, word) {
     }  
 }
 
-function setWordDown(crossword, row, column, word) {
-    let delta = word[0] == " " ? 1 : -1;
-
+function setWordDown(crossword, row, column, word, delta) {
     let startCell = crossword.cells[row][column];
-    startCell.initialCount += delta;
+    startCell.wordsFromThisCell += delta;
 
     for(let i = 0; i < word.length; i++) {
         let c = word[i];
@@ -200,6 +159,7 @@ function setWordDown(crossword, row, column, word) {
 function printCrossword(crossword) {
     console.log("Solution");
     console.log("--------");
+
     for(let row = 0; row < crossword.rowCount; row++) {
         let line = "";
         for(let col = 0; col < crossword.columnCount; col++) {
@@ -234,7 +194,7 @@ function solveCrossword(crossword, words) {
         for(col = 0; col < crossword.columnCount; col++) {
             let possibleCell = crossword.cells[row][col];
             if(possibleCell != null) {
-                if(possibleCell.isStartCell && possibleCell.initialCount > 0) {
+                if(possibleCell.isStartCell && possibleCell.wordsFromThisCell > 0) {
                     cell = possibleCell;
                     break;
                 }
@@ -268,7 +228,8 @@ function solveCrossword(crossword, words) {
                 words[i] = null;       
                 
                 // ...now add the word to the crossword and try to solve the "new" crossword
-                setWordRight(crossword, row, col, word);
+                // We use -1 as we're adding a word and want to reduce the "wordsFromThisCell" value
+                setWordRight(crossword, row, col, word, -1);
                 if(solveCrossword(crossword, words)) {
                     return true;
                 }
@@ -276,7 +237,8 @@ function solveCrossword(crossword, words) {
                 // As solveCrossword returned false it means we haven't solved it yet.
                 // Reset the word (by putting it back to "pattern") and try again with another word.
                 // NOTE: This is the backtracking bit!
-                setWordRight(crossword, row, col, pattern);
+                // We use 1 as we're putting the old word back and want to increase the count
+                setWordRight(crossword, row, col, pattern, 1);
                 words[i] = word;
             }
         }
@@ -291,12 +253,12 @@ function solveCrossword(crossword, words) {
             if(word != null && isMatch(pattern, word)) {
                 words[i] = null;  
 
-                setWordDown(crossword, row, col, word);
+                setWordDown(crossword, row, col, word, -1);
                 if(solveCrossword(crossword, words)) {
                     return true;
                 }
 
-                setWordDown(crossword, row, col, pattern);
+                setWordDown(crossword, row, col, pattern, 1);
                 words[i] = word;
             }
         }
