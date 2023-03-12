@@ -30,8 +30,7 @@ function createCell(initialCount) {
     let cell = {
         isStartCell: isStartCell,
         wordsFromThisCell: initialCount,
-        char: " ",
-        toString: function(){return this.char;}
+        char: " "
     };
 
     return cell;
