@@ -7,7 +7,7 @@ function isMatch(lineFromCrossword, candidate) {
         return false;
     }
 
-    for (var i = 0; i < lineFromCrossword.length; i++) {
+    for (let i = 0; i < lineFromCrossword.length; i++) {
         if (lineFromCrossword[i] == ' ') {
             continue;
         }
@@ -21,8 +21,8 @@ function isMatch(lineFromCrossword, candidate) {
 }
 
 function findWordThatMatches(pattern, words) {
-    for(var i = 0; i < words.length; i++) {
-        var word = words[i];
+    for(let i = 0; i < words.length; i++) {
+        let word = words[i];
         if(word != null) {
             if(isMatch(pattern, word)) {
                 return [word, i];
@@ -33,34 +33,50 @@ function findWordThatMatches(pattern, words) {
     return [null, -1];
 }
 
+/*
+ * Creates a crossword cell which holds the information we need to solve the puzzle
+ */
 function createCell(initialCount) {
-    var isStartCell = initialCount > 0
+    let isStartCell = initialCount > 0
 
-    return {
+    let cell = {
         isStartCell: isStartCell,
         initialCount: initialCount,
-        char: " "
+        char: " ",
+        toString: function(){return this.char;}
+    };
+
+    return cell;
+}
+
+/*
+ * Creates a crossword from a description.
+ * Cells that can't contain a letter are set to null
+ */
+function createCrossword(boardDescription) {
+    let rows = boardDescription.split("\n");
+
+    let cells = rows.map(row => {
+        let characters = Array.from(row)
+        return characters.map(cell => cell == '.' ? null : createCell(parseInt(cell)))
+    });
+
+    let rowCount = rows.length;
+    let columnCount = rows[0].length;
+
+    return {
+        rowCount: rowCount,
+        columnCount: columnCount,
+        cells: cells
     };
 }
 
-function createBoard(boardDescription) {
-    var rows = boardDescription.split("\n");
 
-    return rows.map(row => {
-        var characters = Array.from(row)
-        return characters.map(cell => cell == '.' ? null : createCell(parseInt(cell)))
-    });
-}
-
-
-function getHorizontalLength(board, row, column) {
-    // assume the length of the first row is the width of the board (for now)
-    var width = board[0].length;
+function getHorizontalLength(crossword, row, column) {
+    let length = 0;
     
-    var length = 0;
-    
-    for (var i = column; i < width; i++) {
-        var cell = board[row][i];
+    for (let i = column; i < crossword.columnCount; i++) {
+        let cell = crossword.cells[row][i];
         if (cell == null)
         {
             break;
@@ -72,14 +88,14 @@ function getHorizontalLength(board, row, column) {
     return length;
 }
 
-function getVerticalLength(board, row, column) {
-    // assume the length of the board row is the height of the board (for now)
-    var height = board.length;
+/*
+ * Given a cell location works out how
+ */
+function getVerticalLength(crossword, row, column) {
+    let length = 0;
     
-    var length = 0;
-    
-    for (var i = row; i < height; i++) {
-        var cell = board[i][column];
+    for (let i = row; i < crossword.rowCount; i++) {
+        let cell = crossword.cells[i][column];
         if (cell == null)
         {
             break;
@@ -91,14 +107,15 @@ function getVerticalLength(board, row, column) {
     return length;
 }
 
-function canGoRight(board, row, column) {
-    var width = board[0].length;
-
-    if(column == width) {
+/*
+ * Given a cell on the crossword works out if we can add a word at the cell and going right
+ */
+function canGoRight(crossword, row, column) {
+    if(column == crossword.columnCount) {
         return false;
     }
 
-    var cell = board[row][column + 1];
+    let cell = crossword.cells[row][column + 1];
     if(cell == null) {
         return false;
     }
@@ -106,14 +123,15 @@ function canGoRight(board, row, column) {
     return true;
 }
 
-function canGoDown(board, row, column) {
-    var height = board.length;
-
-    if(row == height) {
+/*
+ * Given a cell on the crossword works out if we can add a word at the cell and going down
+ */
+function canGoDown(crossword, row, column) {
+    if(row == crossword.rowCount) {
         return false;
     }
 
-    var cell = board[row + 1][column];
+    let cell = crossword.cells[row + 1][column];
     if(cell == null) {
         return false;
     }
@@ -121,14 +139,11 @@ function canGoDown(board, row, column) {
     return true;
 }
 
-function getWordRight(board, row, column) {
-    // assume the length of the first row is the width of the board (for now)
-    var width = board[0].length;
+function getWordRight(crossword, row, column) {
+    let word = "";
     
-    var word = "";
-    
-    for (var i = column; i < width; i++) {
-        var cell = board[row][i];
+    for (let i = column; i < crossword.columnCount; i++) {
+        let cell = crossword.cells[row][i];
         if (cell == null)
         {
             break;
@@ -140,14 +155,11 @@ function getWordRight(board, row, column) {
     return word;
 }
 
-function getWordDown(board, row, column) {
-    // assume the length of the board row is the height of the board (for now)
-    var height = board.length;
+function getWordDown(crossword, row, column) {
+    let word = "";
     
-    var word = "";
-    
-    for (var i = row; i < height; i++) {
-        var cell = board[i][column];
+    for (let i = row; i < crossword.rowCount; i++) {
+        let cell = crossword.cells[i][column];
         if (cell == null)
         {
             break;
@@ -159,48 +171,42 @@ function getWordDown(board, row, column) {
     return word;
 }
 
-function setWordRight(board, row, column, word) {
-    // assume the length of the first row is the width of the board (for now)
-    var width = board[0].length;
-
-    var delta = word[0] == " " ? 1 : -1;
+function setWordRight(crossword, row, column, word) {
+    let delta = word[0] == " " ? 1 : -1;
     
-    var startCell = board[row][column];
+    let startCell = crossword.cells[row][column];
     startCell.initialCount += delta;
 
-    for(var i = 0; i < word.length; i++) {
-        var c = word[i];
-        cell = board[row][column + i];
+    for(let i = 0; i < word.length; i++) {
+        let c = word[i];
+        cell = crossword.cells[row][column + i];
         cell.char = c;
     }  
 }
 
-function setWordDown(board, row, column, word) {
-    // assume the length of the first row is the width of the board (for now)
-    var height = board.length;
-    
-    var delta = word[0] == " " ? 1 : -1;
+function setWordDown(crossword, row, column, word) {
+    let delta = word[0] == " " ? 1 : -1;
 
-    var startCell = board[row][column];
+    let startCell = crossword.cells[row][column];
     startCell.initialCount += delta;
 
-    for(var i = 0; i < word.length; i++) {
-        var c = word[i];
-        var cell = board[row + i][column];
+    for(let i = 0; i < word.length; i++) {
+        let c = word[i];
+        let cell = crossword.cells[row + i][column];
         cell.char = c;
     }    
 }
 
-function printBoard(board) {
+function printCrossword(crossword) {
     console.log("Solution");
     console.log("--------");
-    for(var row = 0; row < board.length; row++) {
-        var line = "";
-        for(var col = 0; col < board[0].length; col++) {
-            let cell = board[row][col];
+    for(let row = 0; row < crossword.rowCount; row++) {
+        let line = "";
+        for(let col = 0; col < crossword.columnCount; col++) {
+            let cell = crossword.cells[row][col];
 
             if(cell == null) {
-                line += " ";
+                line += ".";
             }
             else {
                 line += cell.char;
@@ -211,19 +217,22 @@ function printBoard(board) {
     console.log();
 }
 
-function solveBoard(board, words) {
-    // Find a cell
-    var rowCount = board.length;
-    var colCount = board[0].length;
+/*
+ * Attempts to solve a crossword.
+ * Returns true if it solved the crossword, false it if failed to solve the crossword.
+ * NOTE: This is our recursive function
+ */
+function solveCrossword(crossword, words) {
+    let cell = null;
+    let row = 0;
+    let col = 0;
 
-    var cell = null;
-    var row = 0;
-    var col = 0;
-
-    for(; row < rowCount; row++) {
-        col = 0;
-        for(; col < colCount; col++) {
-            var possibleCell = board[row][col];
+    /*
+     * Looks for a cell that we can try to place a word into
+     */
+    for(; row < crossword.rowCount; row++) {
+        for(col = 0; col < crossword.columnCount; col++) {
+            let possibleCell = crossword.cells[row][col];
             if(possibleCell != null) {
                 if(possibleCell.isStartCell && possibleCell.initialCount > 0) {
                     cell = possibleCell;
@@ -238,54 +247,69 @@ function solveBoard(board, words) {
     }
 
     if(cell == null) {
-        // There are no cells left to match!
-        printBoard(board);
-        return;
+        // There are no cells left to solve (we're done).
+        // This is known as the "terminating condition" in recursion
+        return true;
     }
 
-    // We've got a cell
-    if(canGoRight(board, row, col)) {
-        var pattern = getWordRight(board, row, col);
+    // We've got a cell. Can we put a word in going right?
+    if(canGoRight(crossword, row, col)) {
+        // Get the current word at [row, col] and to the right.
+        // It may just be spaces, or it may have some letters in from words that intersect it.
+        let pattern = getWordRight(crossword, row, col);
 
-        for(var i = 0; i < words.length; i++) {
-            var word = words[i];
+        // Now look for a word that matches the word pattern.
+        for(let i = 0; i < words.length; i++) {            
+            let word = words[i];
+
+            // If word is null it means it's been previously removed as part of a possible solution
             if(word != null && isMatch(pattern, word)) {
+                // We've got a match. Take the word out of the array by setting it to null...
                 words[i] = null;       
-                var char = cell.char;
-                setWordRight(board, row, col, word);
-                solveBoard(board, words)
-                setWordRight(board, row, col, " ".repeat(word.length));
-                cell.char = char;
+                
+                // ...now add the word to the crossword and try to solve the "new" crossword
+                setWordRight(crossword, row, col, word);
+                if(solveCrossword(crossword, words)) {
+                    return true;
+                }
+
+                // As solveCrossword returned false it means we haven't solved it yet.
+                // Reset the word (by putting it back to "pattern") and try again with another word.
+                // NOTE: This is the backtracking bit!
+                setWordRight(crossword, row, col, pattern);
                 words[i] = word;
             }
         }
     }
     
-    if(canGoDown(board, row, col)) {
-        var pattern = getWordDown(board, row, col);
+    // NOTE: The comments above apply to this block, too
+    if(canGoDown(crossword, row, col)) {
+        let pattern = getWordDown(crossword, row, col);
 
-        for(var i = 0; i < words.length; i++) {
-            var word = words[i];
+        for(let i = 0; i < words.length; i++) {
+            let word = words[i];
             if(word != null && isMatch(pattern, word)) {
-                words[i] = null;   
-                var char = cell.char;
-                setWordDown(board, row, col, word);
-                solveBoard(board, words)
-                setWordDown(board, row, col, " ".repeat(word.length));
-                cell.char = char;
+                words[i] = null;  
+
+                setWordDown(crossword, row, col, word);
+                if(solveCrossword(crossword, words)) {
+                    return true;
+                }
+
+                setWordDown(crossword, row, col, pattern);
                 words[i] = word;
             }
         }
     } 
+
+    // We tried left and right and neither returned true and neither
+    // of their calls to solveCrossword returned true, so there is 
+    // not solution at this level.
+    return false;
 }
 
-//console.log(board)
+function doHolidays() {
 
-//console.log(getHorizontalLength(board, 4, 0));
-//console.log(getVerticalLength(board, 0, 0));
-//console.log(getWordDown(board, 2, 0).length);
-
-/*
 const puzzle = `...1...........
 ..1000001000...
 ...0....0......
@@ -298,27 +322,32 @@ const puzzle = `...1...........
 .0.0......0....
 .0.0.....100...
 ...0......0....
-..........0....`
+..........0....`;
+
+    const words = [
+    'sun',
+    'sunglasses',
+    'suncream',
+    'swimming',
+    'bikini',
+    'beach',
+    'icecream',
+    'tan',
+    'deckchair',
+    'sand',
+    'seaside',
+    'sandals',
+    ]
+
+    let crossword = createCrossword(puzzle);
+    if(solveCrossword(crossword, words)) {
+        printCrossword(crossword);
+    }
+}
 
 
-const words = [
-  'sun',
-  'sunglasses',
-  'suncream',
-  'swimming',
-  'bikini',
-  'beach',
-  'icecream',
-  'tan',
-  'deckchair',
-  'sand',
-  'seaside',
-  'sandals',
-]
-*/
+function doFood(){
 
-
-/*
 const puzzle = `..1.1..1...
 10000..1000
 ..0.0..0...
@@ -329,23 +358,38 @@ const puzzle = `..1.1..1...
 ....0..0...
 ..100000...
 ....0..0...
-....0......`
-const words = [
-  'popcorn',
-  'fruit',
-  'flour',
-  'chicken',
-  'eggs',
-  'vegetables',
-  'pasta',
-  'pork',
-  'steak',
-  'cheese',
-]
-*/
+....0......`;
 
-const puzzle = '2001\n0..0\n1000\n0..0'
-const words = ['casa', 'alan', 'ciao', 'anta']
+    const words = [
+    'popcorn',
+    'fruit',
+    'flour',
+    'chicken',
+    'eggs',
+    'vegetables',
+    'pasta',
+    'pork',
+    'steak',
+    'cheese',
+    ];
 
-b = createBoard(puzzle);
-solveBoard(b, words);
+    let crossword = createCrossword(puzzle);
+    if(solveCrossword(crossword, words)) {
+        printCrossword(crossword);
+    }
+}
+
+
+function doWords() {
+    const puzzle = '2001\n0..0\n1000\n0..0'
+    const words = ['casa', 'alan', 'ciao', 'anta']
+
+    let crossword = createCrossword(puzzle);
+    if(solveCrossword(crossword, words)) {
+        printCrossword(crossword);
+    }
+}
+
+doWords();
+doHolidays();
+doFood();
