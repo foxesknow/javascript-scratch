@@ -62,7 +62,7 @@ function createCrossword(boardDescription) {
  * Given a cell on the crossword works out if we can add a word at the cell and going right
  */
 function canGoRight(crossword, row, column) {
-    if(column == crossword.columnCount) {
+    if(column + 1 == crossword.columnCount) {
         return false;
     }
 
@@ -78,7 +78,7 @@ function canGoRight(crossword, row, column) {
  * Given a cell on the crossword works out if we can add a word at the cell and going down
  */
 function canGoDown(crossword, row, column) {
-    if(row == crossword.rowCount) {
+    if(row + 1 == crossword.rowCount) {
         return false;
     }
 
